@@ -531,6 +531,8 @@ const $=s=>document.querySelector(s);
 const LOGO=document.querySelector('.logo img').src;
 /* Medición: envía eventos a Google Analytics 4 (gtag) y Microsoft Clarity si están instalados. Nunca envía datos personales. */
 const VISITA=Math.random().toString(36).slice(2,10);
+/* Visitante anónimo: un código guardado en este navegador para saber si la misma persona vuelve a entrar. No guarda datos personales. */
+const {VISITANTE,VEZ}=(()=>{let id=null,n=1;try{id=localStorage.getItem('kus_visitante');n=(parseInt(localStorage.getItem('kus_veces')||'0',10)||0)+1;if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('kus_visitante',id);}localStorage.setItem('kus_veces',String(n));}catch(e){}return {VISITANTE:id||('t'+VISITA),VEZ:n};})();
 const DISPOSITIVO=/Mobi|Android|iPhone/i.test(navigator.userAgent)?'Celular':'Computador';
 function track(ev,p){p=p||{};try{
   if(window.gtag)window.gtag('event',ev,p);
@@ -538,7 +540,7 @@ function track(ev,p){p=p||{};try{
   if(typeof SHEETS_URL==='string'&&/^https:\/\/script\.google\.com\//.test(SHEETS_URL)){
     const {dentista='',comuna='',especialidad='',...resto}=p;
     let origen='';try{origen=document.referrer?new URL(document.referrer).hostname:'directo';}catch(e){}
-    const data={tipo:'evento',visita:VISITA,evento:ev,dentista,comuna,especialidad,detalle:Object.entries(resto).map(([k,v])=>k+': '+v).join(' · '),dispositivo:DISPOSITIVO,origen};
+    const data={tipo:'evento',visita:VISITA,evento:ev,dentista,comuna,especialidad,detalle:[['visitante',VISITANTE],['vez',VEZ],...Object.entries(resto)].map(([k,v])=>k+': '+v).join(' · '),dispositivo:DISPOSITIVO,origen};
     fetch(SHEETS_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data).toString()}).catch(()=>{});
   }
 }catch(e){}}
