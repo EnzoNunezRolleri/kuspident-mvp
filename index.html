@@ -233,6 +233,7 @@ footer .cols{display:flex;gap:28px;flex-wrap:wrap}
 /* ===== Encuesta de entrada (3 pasos) ===== */
 #enc{--c:#1A9FD9;--c2:#0B78AB;--cl:#EAF6FC;--cb:#BEE3F4;--t:#0F2A3A;--m:#5B7383;--b:#E1E9EE;--err:#D32F2F;position:fixed;inset:0;z-index:100;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--t);line-height:1.45;font-size:14px}
 html.enc-abierta,html.enc-abierta body{overflow:hidden}
+html.enc-lista #enc{display:none}
 #enc *{box-sizing:border-box;margin:0;padding:0}
 #enc button,#enc input{font:inherit;color:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #enc .e-wrap{max-width:480px;margin:0 auto;padding:0 16px calc(28px + env(safe-area-inset-bottom));min-height:100%;background:#fff}
@@ -314,8 +315,9 @@ html.enc-abierta,html.enc-abierta body{overflow:hidden}
 
 <div id="modal"></div>
 
+<script>/* Decide antes de pintar si se muestra la encuesta */(function(){var ya=false;try{ya=!!localStorage.getItem('kus_encuesta')&&!/[?&]prueba=1/.test(location.search)&&sessionStorage.getItem('kus_prueba')!=='1';}catch(e){}document.documentElement.classList.add(ya?'enc-lista':'enc-abierta');})();</script>
 <!-- Encuesta de entrada: se muestra antes de la lista de dentistas -->
-<div id="enc" hidden role="dialog" aria-modal="true" aria-label="Encuentra tu odontólogo">
+<div id="enc" role="dialog" aria-modal="true" aria-label="Encuentra tu odontólogo">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="kg" gradientUnits="userSpaceOnUse" x1="2" y1="30" x2="30" y2="2"><stop offset="0" stop-color="#1F7FEF"/><stop offset="1" stop-color="#22CDE6"/></linearGradient></defs></svg>
 <div class="e-wrap">
   <div class="e-top">
@@ -677,7 +679,7 @@ const LOGO=document.querySelector('.logo img').src;
 const VISITA=Math.random().toString(36).slice(2,10);
 /* Visitante anónimo: un código guardado en este navegador para saber si la misma persona vuelve a entrar. No guarda datos personales. */
 const {VISITANTE,VEZ}=(()=>{let id=null,n=1;try{id=localStorage.getItem('kus_visitante');n=(parseInt(localStorage.getItem('kus_veces')||'0',10)||0)+1;if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('kus_visitante',id);}localStorage.setItem('kus_veces',String(n));}catch(e){}return {VISITANTE:id||('t'+VISITA),VEZ:n};})();
-const PRUEBA=(()=>{try{return new URLSearchParams(location.search).get('prueba')==='1';}catch(e){return false;}})();
+const PRUEBA=(()=>{try{let v=new URLSearchParams(location.search).get('prueba')==='1';if(v)sessionStorage.setItem('kus_prueba','1');else v=sessionStorage.getItem('kus_prueba')==='1';return v;}catch(e){return false;}})();
 const DISPOSITIVO=/Mobi|Android|iPhone/i.test(navigator.userAgent)?'Celular':'Computador';
 function track(ev,p){p=p||{};try{
   if(window.gtag)window.gtag('event',ev,p);
@@ -982,6 +984,13 @@ function saveBooking(f){
 function showMVP(){
   track('vio_aviso_mvp',DN(state.booking.id));
   const first=state.form.name.split(/\s+/)[0]||'';
+  /* En agenda.kuspident.cl la página de gracias es una dirección propia (/gracias.html), para Meta Ads.
+     El nombre pasa por sessionStorage, nunca por la dirección, para que no llegue a Meta. */
+  if(/(^|\.)kuspident\.cl$/.test(location.hostname)){
+    try{sessionStorage.setItem('kus_nombre',first);sessionStorage.setItem('kus_visita',VISITA);}catch(e){}
+    setTimeout(()=>{location.href='/gracias.html';},300);
+    return;
+  }
   $('#modal').innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="mvp-t">
     <div class="dialog">
       <span class="badge">Prototipo · MVP</span>
@@ -1132,7 +1141,7 @@ const ENC=(()=>{
   g('e-enviar').addEventListener('click',enviar);
 
   function cerrar(){
-    E.abierta=false;el.hidden=true;document.documentElement.classList.remove('enc-abierta');
+    E.abierta=false;el.hidden=true;document.documentElement.classList.remove('enc-abierta');document.documentElement.classList.add('enc-lista');
     try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
     window.scrollTo(0,0);
   }
@@ -1142,7 +1151,7 @@ const ENC=(()=>{
     irA(1,false);
     ev('encuesta_vio');
   }
-  return {abrir,yaRespondio:()=>!!leer()};
+  return {abrir,yaRespondio:()=>!!leer()&&!PRUEBA};
 })();
 
 render();
