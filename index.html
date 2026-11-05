@@ -1021,9 +1021,11 @@ const E_COMUNAS={
   'Concepción': ['Chiguayante','Concepción','Coronel','Hualpén','Hualqui','Lota','Penco','San Pedro de la Paz','Talcahuano','Tomé']
 };
 /* Al mostrar la lista, la dirección pasa a ...?vista=dentistas (para que Meta la mida como página propia) */
-function vistaDentistas(){
+function vistaDentistas(nueva){
   try{const u=new URL(location.href);if(u.searchParams.get('vista')!=='dentistas'){u.searchParams.set('vista','dentistas');history.replaceState(history.state,'',u.pathname+u.search);}}catch(e){}
-  try{if(window.fbq&&!PRUEBA){fbq('track','PageView');fbq('track','ViewContent',{content_name:'Lista de dentistas'});}}catch(e){}
+  try{if(window.fbq&&!PRUEBA){fbq('track','PageView');fbq('track','ViewContent',{content_name:'Lista de dentistas'});
+    /* La campaña de Meta optimiza por "Completar registro": se cuenta una vez, al llegar a la lista tras la encuesta */
+    if(nueva)fbq('track','CompleteRegistration',{content_name:'Lista de dentistas'});}}catch(e){}
 }
 /* ===== Encuesta de entrada (3 pasos antes de la lista) ===== */
 const ENC=(()=>{
@@ -1138,7 +1140,7 @@ const ENC=(()=>{
     ev('envio_datos',{especialidad:E.trat,comuna:E.comuna,ciudad:E.ciudad,lista:r,resultados:filtered().length});
     cerrar();
     render();
-    vistaDentistas();
+    vistaDentistas(true);
   }
   g('e-enviar').addEventListener('click',enviar);
 
